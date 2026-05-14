@@ -5,45 +5,56 @@ import { useRouter } from "next/navigation";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user,       setUser]       = useState(null);
+  const [token,      setToken]      = useState(null);
+  const [rol,        setRol]        = useState(null);
+  const [empresaId,  setEmpresaId]  = useState(null);
+  const [loading,    setLoading]    = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("fieldops_token");
-    const userData = localStorage.getItem("fieldops_user");
-    if (token && userData) {
-      setUser(JSON.parse(userData));
+    const t = localStorage.getItem("tecnoop_token");
+    const u = localStorage.getItem("tecnoop_usuario");
+    const r = localStorage.getItem("tecnoop_rol");
+    const e = localStorage.getItem("tecnoop_empresa_id");
+    if (t && u) {
+      setToken(t);
+      setUser(u);
+      setRol(r || "tecnico");
+      setEmpresaId(e);
     }
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    if (!res.ok) throw new Error("Credenciales incorrectas");
-    const data = await res.json();
-    localStorage.setItem("fieldops_token", data.access_token);
-    localStorage.setItem("fieldops_user", JSON.stringify(data.user));
-    setUser(data.user);
+  const login = (tok, usuario, rol, empresaId) => {
+    localStorage.setItem("tecnoop_token",      tok);
+    localStorage.setItem("tecnoop_usuario",    usuario);
+    localStorage.setItem("tecnoop_rol",        rol || "tecnico");
+    localStorage.setItem("tecnoop_empresa_id", empresaId || "");
+    setToken(tok);
+    setUser(usuario);
+    setRol(rol || "tecnico");
+    setEmpresaId(empresaId);
     router.push("/dashboard");
   };
 
   const logout = () => {
-    localStorage.removeItem("fieldops_token");
-    localStorage.removeItem("fieldops_user");
+    ["tecnoop_token", "tecnoop_usuario", "tecnoop_rol", "tecnoop_empresa_id"]
+      .forEach(k => localStorage.removeItem(k));
+    setToken(null);
     setUser(null);
+    setRol(null);
+    setEmpresaId(null);
     router.push("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, rol, empresaId, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  return useContext(AuthContext);
+}
