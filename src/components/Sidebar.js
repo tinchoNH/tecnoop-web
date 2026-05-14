@@ -3,144 +3,132 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import {
+  ClipboardList, Users, Building2, FileText,
+  BarChart3, Map, Settings, LogOut, ChevronDown,
+  ChevronRight, Shield,
+} from "lucide-react";
 
-const MODULOS_BASE = [
+const MODULOS = [
   {
     key: "ordenes",
-    nombre: "Órdenes de Trabajo",
-    icon: "📋",
+    label: "Órdenes de Trabajo",
+    icon: ClipboardList,
     subs: [
-      { href: "/dashboard/ordenes",          label: "Vista del día" },
+      { href: "/dashboard/ordenes",           label: "Vista del día" },
       { href: "/dashboard/ordenes/historial", label: "Historial" },
     ],
   },
   {
     key: "tecnicos",
-    nombre: "Técnicos",
-    icon: "👷",
-    subs: [
-      { href: "/dashboard/tecnicos", label: "Lista de técnicos" },
-    ],
+    label: "Técnicos",
+    icon: Users,
+    subs: [{ href: "/dashboard/tecnicos", label: "Lista de técnicos" }],
   },
   {
     key: "clientes",
-    nombre: "Clientes",
-    icon: "🏢",
-    subs: [
-      { href: "/dashboard/clientes", label: "Lista de clientes" },
-    ],
+    label: "Clientes",
+    icon: Building2,
+    subs: [{ href: "/dashboard/clientes", label: "Lista de clientes" }],
   },
   {
     key: "contratos",
-    nombre: "Contratos",
-    icon: "📄",
-    subs: [
-      { href: "/dashboard/contratos", label: "Contratos recurrentes" },
-    ],
+    label: "Contratos",
+    icon: FileText,
+    subs: [{ href: "/dashboard/contratos", label: "Contratos recurrentes" }],
   },
   {
     key: "estadisticas",
-    nombre: "Estadísticas",
-    icon: "📊",
-    subs: [
-      { href: "/dashboard/estadisticas", label: "Resumen general" },
-    ],
+    label: "Estadísticas",
+    icon: BarChart3,
+    subs: [{ href: "/dashboard/estadisticas", label: "Resumen general" }],
   },
   {
     key: "mapa",
-    nombre: "Mapa",
-    icon: "🗺️",
-    subs: [
-      { href: "/dashboard/mapa", label: "Técnicos en tiempo real" },
-    ],
+    label: "Mapa en vivo",
+    icon: Map,
+    subs: [{ href: "/dashboard/mapa", label: "Técnicos en campo" }],
   },
   {
     key: "configuracion",
-    nombre: "Configuración",
-    icon: "⚙️",
-    subs: [
-      { href: "/dashboard/configuracion", label: "Configuración" },
-    ],
+    label: "Configuración",
+    icon: Settings,
+    subs: [{ href: "/dashboard/configuracion", label: "Configuración" }],
   },
 ];
 
 const MODULO_ADMIN = {
-  key: "admin",
-  nombre: "Administración",
-  icon: "🔐",
-  subs: [
-    { href: "/dashboard/admin/usuarios", label: "Usuarios" },
-  ],
+  key: "admin", label: "Administración", icon: Shield,
+  subs: [{ href: "/dashboard/admin/usuarios", label: "Usuarios" }],
 };
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, rol, logout } = useAuth();
 
-  const todosModulos = rol === "admin" || rol === "superadmin"
-    ? [...MODULOS_BASE, MODULO_ADMIN]
-    : MODULOS_BASE;
+  const modulos = (rol === "admin" || rol === "superadmin")
+    ? [...MODULOS, MODULO_ADMIN]
+    : MODULOS;
 
-  const [openModulo, setOpenModulo] = useState(() => {
-    for (const mod of MODULOS_BASE) {
-      if (mod.subs?.some(s => pathname.startsWith(s.href.split("?")[0]))) return mod.nombre;
+  const [open, setOpen] = useState(() => {
+    for (const m of MODULOS) {
+      if (m.subs?.some(s => pathname.startsWith(s.href))) return m.key;
     }
-    return "Órdenes de Trabajo";
+    return "ordenes";
   });
 
   return (
-    <aside className="w-60 min-h-screen flex flex-col shrink-0"
-      style={{ background: "linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)" }}>
-
-      <Link href="/dashboard"
-        className="block px-5 py-5 border-b border-indigo-700/50 hover:bg-white/10 transition">
-        <h1 className="text-base font-bold text-white">TecnoOP</h1>
-        <p className="text-xs text-indigo-300 mt-0.5">Bienvenido, {user}</p>
+    <aside className="w-60 min-h-screen flex flex-col shrink-0 border-r border-slate-200 bg-white">
+      {/* Logo */}
+      <Link href="/dashboard" className="flex items-center gap-3 px-5 py-5 border-b border-slate-100 hover:bg-slate-50 transition">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-sm"
+          style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)"}}>T</div>
+        <div>
+          <p className="font-bold text-slate-900 text-sm leading-tight">TecnoOP</p>
+          <p className="text-xs text-slate-400 leading-tight">{user}</p>
+        </div>
       </Link>
 
-      <nav className="flex-1 py-3 overflow-y-auto">
-        {todosModulos.map(mod => (
-          <div key={mod.nombre}>
-            <button
-              onClick={() => setOpenModulo(openModulo === mod.nombre ? "" : mod.nombre)}
-              className={`w-full flex items-center gap-2.5 px-5 py-2.5 text-sm transition text-left
-                ${openModulo === mod.nombre
-                  ? "bg-white/10 text-white"
-                  : "text-indigo-200 hover:bg-white/8 hover:text-white"
-                }`}
-            >
-              <span>{mod.icon}</span>
-              <span className="flex-1 font-medium">{mod.nombre}</span>
-              <span className="text-xs text-indigo-400">{openModulo === mod.nombre ? "▾" : "▸"}</span>
-            </button>
-
-            {openModulo === mod.nombre && mod.subs && (
-              <div className="ml-9 border-l border-indigo-600/50">
-                {mod.subs.map(sub => {
-                  const isActive = pathname === sub.href.split("?")[0];
-                  return (
-                    <Link key={sub.href} href={sub.href}
-                      className={`block px-4 py-2 text-sm transition
-                        ${isActive
-                          ? "text-white bg-white/15 font-medium border-l-2 border-indigo-300 -ml-px"
-                          : "text-indigo-300 hover:text-white hover:bg-white/8"
-                        }`}>
-                      {sub.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
+      {/* Nav */}
+      <nav className="flex-1 py-3 px-3 overflow-y-auto space-y-0.5">
+        {modulos.map(({ key, label, icon: Icon, subs }) => {
+          const isOpen = open === key;
+          const isActive = subs?.some(s => pathname.startsWith(s.href));
+          return (
+            <div key={key}>
+              <button onClick={() => setOpen(isOpen ? "" : key)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition text-left
+                  ${isActive || isOpen ? "bg-indigo-50 text-indigo-700 font-medium" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}`}>
+                <Icon className="w-4 h-4 shrink-0" />
+                <span className="flex-1">{label}</span>
+                {isOpen ? <ChevronDown className="w-3.5 h-3.5 opacity-50"/> : <ChevronRight className="w-3.5 h-3.5 opacity-30"/>}
+              </button>
+              {isOpen && subs && (
+                <div className="ml-9 mt-0.5 space-y-0.5">
+                  {subs.map(sub => {
+                    const active = pathname === sub.href || pathname.startsWith(sub.href + "/");
+                    return (
+                      <Link key={sub.href} href={sub.href}
+                        className={`block px-3 py-1.5 rounded-lg text-xs transition
+                          ${active ? "bg-indigo-100 text-indigo-700 font-semibold" : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"}`}>
+                        {sub.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
-      <div className="px-5 py-4 border-t border-indigo-700/50 flex items-center justify-between">
+      {/* Footer */}
+      <div className="px-4 py-4 border-t border-slate-100">
         <button onClick={logout}
-          className="text-sm text-indigo-300 hover:text-red-400 transition text-left">
-          Cerrar sesión
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-slate-500 hover:text-red-500 hover:bg-red-50 transition">
+          <LogOut className="w-4 h-4" />
+          <span>Cerrar sesión</span>
         </button>
-        <span className="text-xs text-indigo-500">v0.1</span>
       </div>
     </aside>
   );

@@ -11,68 +11,52 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) return null;
-  if (user) {
-    if (typeof window !== "undefined") window.location.href = "/dashboard";
-    return null;
-  }
+  if (user) { if (typeof window !== "undefined") window.location.href = "/dashboard"; return null; }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSubmitting(true);
+    setError(""); setSubmitting(true);
     try {
       const data = await api.post("/auth/login", { email, password });
       login(data.access_token, data.user.nombre, data.user.rol, data.user.empresa_id);
-    } catch {
-      setError("Email o contraseña incorrectos");
-    }
+    } catch { setError("Email o contraseña incorrectos"); }
     setSubmitting(false);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 to-indigo-900">
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm space-y-5">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-800">TecnoOP</h1>
-          <p className="text-sm text-slate-500 mt-1">Gestión de técnicos en campo</p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2 rounded-lg">
-            {error}
+    <div className="min-h-screen flex items-center justify-center" style={{background:"linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)"}}>
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4" style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)"}}>
+            <span className="text-white font-bold text-2xl">T</span>
           </div>
-        )}
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-            required
-          />
+          <h1 className="text-2xl font-bold text-white">TecnoOP</h1>
+          <p className="text-slate-400 text-sm mt-1">Gestión de técnicos en campo</p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-50"
-        >
-          {submitting ? "Ingresando..." : "Ingresar"}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur space-y-4">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-2.5 rounded-xl">
+              {error}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-sm" placeholder="tu@email.com"/>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Contraseña</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition text-sm" placeholder="••••••••"/>
+          </div>
+          <button type="submit" disabled={submitting}
+            className="w-full py-2.5 rounded-xl font-semibold text-white transition disabled:opacity-50 text-sm mt-2"
+            style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)"}}>
+            {submitting ? "Ingresando..." : "Ingresar"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

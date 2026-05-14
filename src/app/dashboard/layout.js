@@ -4,13 +4,12 @@ import { useAuth } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8001";
-const PING_INTERVAL = 12 * 60 * 1000;
 
 function useKeepAlive() {
   useEffect(() => {
     const ping = () => fetch(`${API_URL}/health`).catch(() => {});
     ping();
-    const id = setInterval(ping, PING_INTERVAL);
+    const id = setInterval(ping, 12 * 60 * 1000);
     return () => clearInterval(id);
   }, []);
 }
@@ -26,9 +25,9 @@ export default function DashboardLayout({ children }) {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 p-6 bg-slate-50 overflow-auto">
+      <main className="flex-1 overflow-auto">
         {children}
       </main>
     </div>
