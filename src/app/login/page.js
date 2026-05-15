@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
 
 export default function LoginPage() {
-  const { login, loading, user } = useAuth();
+  const { login, loading, user, rol } = useAuth();
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
   const [error,      setError]      = useState("");
