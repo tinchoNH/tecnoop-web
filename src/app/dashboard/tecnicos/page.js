@@ -1,0 +1,228 @@
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Card, Badge, TextInput } from "@tremor/react";
+import { Users, Plus, Search, Phone, Mail, Car, MapPin } from "lucide-react";
+import { api } from "@/lib/api";
+
+const colorEstado = {
+  disponible:   { color: "emerald", label: "Disponible"   },
+  en_servicio:  { color: "blue",    label: "En servicio"  },
+  ausente:      { color: "red",     label: "Ausente"      },
+};
+
+export default function TecnicosPage() {
+  const router = useRouter();
+  const [tecnicos, setTecnicos]   = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [busqueda, setBusqueda]   = useState("");
+  const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => { cargar(); }, []);
+
+  async function cargar() {
+    try {
+      const data = await api.get("/tecnicos/");
+      setTecnicos(data);
+    } finally { setLoading(false); }
+  }
+
+  const filtrados = tecnicos.filter(t =>
+    t.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+    t.especialidades?.some(e => e.toLowerCase().includes(busqueda.toLowerCase()))
+  );
+
+  return (
+    <div className="p-6 space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Técnicos</h1>
+          <p className="text-sm text-slate-500 mt-0.5">{tecnicos.length} técnicos activos</p>
+        </div>
+        <button onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition"
+          style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)"}}>
+          <Plus className="w-4 h-4" /> Nuevo técnico
+        </button>
+      </div>
+
+      {/* Buscador */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input value={busqueda} onChange={e => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre o especialidad..."
+          className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:border-indigo-400 transition text-slate-700" />
+      </div>
+
+      {/* Grid */}
+      {loading ? (
+        <div className="grid grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-44 bg-slate-100 rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      ) : filtrados.length === 0 ? (
+        <Card className="text-center py-16">
+          <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+          <p className="text-slate-500 font-medium">
+            {busqueda ? "Sin resultados para tu búsqueda" : "Todavía no hay técnicos cargados"}
+          </p>
+          {!busqueda && (
+            <button onClick={() => setShowModal(true)}
+              className="mt-4 text-sm text-indigo-600 hover:underline font-medium">
+              + Agregar el primero
+            </button>
+          )}
+        </Card>
+      ) : (
+        <div className="grid grid-cols-3 gap-4">
+          {filtrados.map(t => {
+            const est = colorEstado[t.estado] || colorEstado.disponible;
+            return (
+              <Card key={t.id} className="cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5"
+                onClick={() => router.push(`/dashboard/tecnicos/${t.id}`)}>
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
+                      {t.nombre.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 text-sm leading-tight">{t.nombre}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t.vehiculo || "Sin vehículo"}</p>
+                    </div>
+                  </div>
+                  <Badge color={est.color} size="xs">{est.label}</Badge>
+                </div>
+
+                <div className="space-y-1.5 mb-3">
+                  {t.celular && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Phone className="w-3.5 h-3.5" />{t.celular}
+                    </div>
+                  )}
+                  {t.email && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <Mail className="w-3.5 h-3.5" />{t.email}
+                    </div>
+                  )}
+                  {t.zonas?.length > 0 && (
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <MapPin className="w-3.5 h-3.5" />{t.zonas.join(", ")}
+                    </div>
+                  )}
+                </div>
+
+                {t.especialidades?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {t.especialidades.slice(0, 3).map(e => (
+                      <span key={e} className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">
+                        {e}
+                      </span>
+                    ))}
+                    {t.especialidades.length > 3 && (
+                      <span className="text-[10px] text-slate-400">+{t.especialidades.length - 3}</span>
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {showModal && <ModalNuevoTecnico onClose={() => setShowModal(false)} onCreado={cargar} />}
+    </div>
+  );
+}
+
+function ModalNuevoTecnico({ onClose, onCreado }) {
+  const [form, setForm] = useState({
+    nombre: "", celular: "", email: "", vehiculo: "",
+    zonas: "", especialidades: "", horas_base: 8,
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError]   = useState("");
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true); setError("");
+    try {
+      await api.post("/tecnicos/", {
+        ...form,
+        zonas:         form.zonas.split(",").map(s => s.trim()).filter(Boolean),
+        especialidades: form.especialidades.split(",").map(s => s.trim()).filter(Boolean),
+        horas_base:    Number(form.horas_base),
+      });
+      onCreado(); onClose();
+    } catch (err) { setError(err.message); }
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="font-bold text-slate-900">Nuevo técnico</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl leading-none">×</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Nombre completo *</label>
+              <input required value={form.nombre} onChange={e => set("nombre", e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Celular</label>
+              <input value={form.celular} onChange={e => set("celular", e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Email</label>
+              <input type="email" value={form.email} onChange={e => set("email", e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Vehículo</label>
+              <input value={form.vehiculo} onChange={e => set("vehiculo", e.target.value)}
+                placeholder="ej: Ford Transit ABC123"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Horas base / día</label>
+              <input type="number" value={form.horas_base} onChange={e => set("horas_base", e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Zonas <span className="text-slate-400">(separadas por coma)</span></label>
+              <input value={form.zonas} onChange={e => set("zonas", e.target.value)}
+                placeholder="ej: CABA, GBA Norte, La Plata"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-medium text-slate-600 mb-1 block">Especialidades <span className="text-slate-400">(separadas por coma)</span></label>
+              <input value={form.especialidades} onChange={e => set("especialidades", e.target.value)}
+                placeholder="ej: Limpieza industrial, Control de plagas"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 transition" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2 rounded-xl border border-slate-200 text-sm text-slate-600 hover:bg-slate-50 transition">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-2 rounded-xl text-sm font-semibold text-white transition disabled:opacity-50"
+              style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)"}}>
+              {saving ? "Guardando..." : "Crear técnico"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
