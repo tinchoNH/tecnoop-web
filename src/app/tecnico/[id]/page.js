@@ -15,12 +15,15 @@ const ESTADO_CONFIG = {
 export default function OTDetalle() {
   const { id } = useParams();
   const router  = useRouter();
-  const [ot,       setOt]       = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [step,     setStep]     = useState("detalle"); // detalle | cierre
-  const [saving,   setSaving]   = useState(false);
-  const [obs,      setObs]      = useState("");
-  const [firmada,  setFirmada]  = useState(false);
+  const [ot,        setOt]        = useState(null);
+  const [config,    setConfig]    = useState({ usa_firma: true, usa_productos: false });
+  const [productos, setProductos] = useState([]);  // catálogo
+  const [usados,    setUsados]    = useState([]);  // [{id, nombre, unidad, cantidad}]
+  const [loading,   setLoading]   = useState(true);
+  const [step,      setStep]      = useState("detalle");
+  const [saving,    setSaving]    = useState(false);
+  const [obs,       setObs]       = useState("");
+  const [firmada,   setFirmada]   = useState(false);
   const canvasRef = useRef(null);
   const drawing   = useRef(false);
   const lastPos   = useRef({ x: 0, y: 0 });
@@ -29,8 +32,16 @@ export default function OTDetalle() {
 
   async function cargar() {
     setLoading(true);
-    try { setOt(await api.get(`/ordenes/${id}`)); }
-    finally { setLoading(false); }
+    try {
+      const [otData, cfg, prods] = await Promise.all([
+        api.get(`/ordenes/${id}`),
+        api.get("/configuracion/"),
+        api.get("/configuracion/productos"),
+      ]);
+      setOt(otData);
+      setConfig(cfg);
+      setProductos(prods);
+    } finally { setLoading(false); }
   }
 
   async function iniciar() {
@@ -42,15 +53,33 @@ export default function OTDetalle() {
   }
 
   async function cerrar() {
-    const canvas = canvasRef.current;
-    if (!firmada) { alert("Por favor firmá antes de cerrar la OT"); return; }
+    if (config.usa_firma && !firmada) { alert("Por favor firmá antes de cerrar la OT"); return; }
     setSaving(true);
     try {
-      const firma_url = canvas.toDataURL("image/png");
+      const patch = { observaciones: obs };
+      if (config.usa_firma && canvasRef.current) {
+        patch.firma_url = canvasRef.current.toDataURL("image/png");
+      }
+      if (config.usa_productos && usados.length > 0) {
+        patch.checklist = { productos_usados: usados.map(u => ({ nombre: u.nombre, unidad: u.unidad, cantidad: Number(u.cantidad) })) };
+      }
       await api.patch(`/ordenes/${id}/estado`, { estado: "realizada" });
-      await api.patch(`/ordenes/${id}`, { observaciones: obs, firma_url });
+      await api.patch(`/ordenes/${id}`, patch);
       router.push("/tecnico");
     } finally { setSaving(false); }
+  }
+
+  function agregarProducto(prod) {
+    if (usados.find(u => u.id === prod.id)) return;
+    setUsados(u => [...u, { ...prod, cantidad: 1 }]);
+  }
+
+  function setCantidad(pid, val) {
+    setUsados(u => u.map(p => p.id === pid ? { ...p, cantidad: val } : p));
+  }
+
+  function quitarProducto(pid) {
+    setUsados(u => u.filter(p => p.id !== pid));
   }
 
   // Canvas firma
@@ -204,35 +233,69 @@ export default function OTDetalle() {
             />
           </div>
 
-          {/* Firma */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Firma del cliente
+          {/* Productos usados */}
+          {config.usa_productos && productos.length > 0 && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-3">
+                Productos / insumos utilizados
               </label>
-              <button onClick={limpiarFirma}
-                className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition">
-                <RotateCcw className="w-3 h-3" /> Limpiar
-              </button>
+              {/* Selector */}
+              <select onChange={e => { const p = productos.find(x => x.id === e.target.value); if(p) agregarProducto(p); e.target.value = ""; }}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 mb-3">
+                <option value="">+ Agregar producto...</option>
+                {productos.filter(p => !usados.find(u => u.id === p.id)).map(p => (
+                  <option key={p.id} value={p.id}>{p.nombre} ({p.unidad})</option>
+                ))}
+              </select>
+              {/* Lista con cantidades */}
+              {usados.length > 0 && (
+                <div className="space-y-2">
+                  {usados.map(u => (
+                    <div key={u.id} className="flex items-center gap-2">
+                      <span className="flex-1 text-sm text-slate-700">{u.nombre}</span>
+                      <input type="number" min="0.1" step="0.1" value={u.cantidad}
+                        onChange={e => setCantidad(u.id, e.target.value)}
+                        className="w-20 border border-slate-200 rounded-lg px-2 py-1 text-sm text-center focus:outline-none focus:border-indigo-400" />
+                      <span className="text-xs text-slate-400 w-12">{u.unidad}</span>
+                      <button onClick={() => quitarProducto(u.id)} className="text-slate-300 hover:text-red-400 transition">×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="border-2 border-dashed border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-              <canvas
-                ref={canvasRef}
-                width={340} height={160}
-                className="w-full touch-none cursor-crosshair"
-                onMouseDown={startDraw}
-                onMouseMove={draw}
-                onMouseUp={stopDraw}
-                onMouseLeave={stopDraw}
-                onTouchStart={startDraw}
-                onTouchMove={draw}
-                onTouchEnd={stopDraw}
-              />
+          )}
+
+          {/* Firma */}
+          {config.usa_firma && (
+            <div className="bg-white rounded-2xl p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  Firma del cliente
+                </label>
+                <button onClick={limpiarFirma}
+                  className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-600 transition">
+                  <RotateCcw className="w-3 h-3" /> Limpiar
+                </button>
+              </div>
+              <div className="border-2 border-dashed border-slate-200 rounded-xl overflow-hidden bg-slate-50">
+                <canvas
+                  ref={canvasRef}
+                  width={340} height={160}
+                  className="w-full touch-none cursor-crosshair"
+                  onMouseDown={startDraw}
+                  onMouseMove={draw}
+                  onMouseUp={stopDraw}
+                  onMouseLeave={stopDraw}
+                  onTouchStart={startDraw}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDraw}
+                />
+              </div>
+              {!firmada && (
+                <p className="text-xs text-slate-400 text-center mt-2">Pedile al cliente que firme acá arriba</p>
+              )}
             </div>
-            {!firmada && (
-              <p className="text-xs text-slate-400 text-center mt-2">Pedile al cliente que firme acá arriba</p>
-            )}
-          </div>
+          )}
 
           {/* Botones */}
           <div className="flex gap-3">
@@ -240,7 +303,7 @@ export default function OTDetalle() {
               className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition">
               Cancelar
             </button>
-            <button onClick={cerrar} disabled={saving || !firmada}
+            <button onClick={cerrar} disabled={saving || (config.usa_firma && !firmada)}
               className="flex-1 py-3.5 rounded-2xl font-semibold text-white text-sm disabled:opacity-50 transition active:scale-[0.98]"
               style={{background:"linear-gradient(135deg,#10b981,#059669)"}}>
               {saving ? "Guardando..." : "Confirmar cierre"}

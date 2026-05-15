@@ -376,8 +376,9 @@ function SlideOverOT({ orden, tecnicos, onClose, onActualizada, onCancelada }) {
 
 /* ─── Modal nueva OT ─── */
 function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
-  const [clientes, setClientes] = useState([]);
-  const [sedes,    setSedes]    = useState([]);
+  const [clientes,      setClientes]      = useState([]);
+  const [sedes,         setSedes]         = useState([]);
+  const [tiposServicio, setTiposServicio] = useState([]);
   const [form, setForm] = useState({
     cliente_id: "", sede_id: "", tecnico_id: "", tipo_servicio: "",
     descripcion: "", fecha_programada: new Date().toISOString().split("T")[0], hora_inicio: "",
@@ -387,7 +388,10 @@ function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
-    api.get("/clientes/").then(setClientes);
+    Promise.all([api.get("/clientes/"), api.get("/configuracion/")]).then(([c, cfg]) => {
+      setClientes(c);
+      setTiposServicio(cfg.tipos_servicio || []);
+    });
   }, []);
 
   useEffect(() => {
@@ -440,9 +444,17 @@ function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
 
           <div>
             <label className="text-xs font-medium text-slate-600 mb-1 block">Tipo de servicio *</label>
-            <input required value={form.tipo_servicio} onChange={e => set("tipo_servicio", e.target.value)}
-              placeholder="ej: Limpieza industrial, Control de plagas..."
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+            {tiposServicio.length > 0 ? (
+              <select required value={form.tipo_servicio} onChange={e => set("tipo_servicio", e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                <option value="">Seleccionar tipo de servicio...</option>
+                {tiposServicio.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            ) : (
+              <input required value={form.tipo_servicio} onChange={e => set("tipo_servicio", e.target.value)}
+                placeholder="ej: Limpieza industrial, Control de plagas..."
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

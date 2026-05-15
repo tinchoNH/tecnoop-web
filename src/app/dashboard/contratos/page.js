@@ -343,9 +343,10 @@ function Section({ label, children }) {
 
 /* ─── Modal nuevo contrato ─── */
 function ModalNuevoContrato({ onClose, onCreado }) {
-  const [clientes,  setClientes]  = useState([]);
-  const [sedes,     setSedes]     = useState([]);
-  const [tecnicos,  setTecnicos]  = useState([]);
+  const [clientes,      setClientes]      = useState([]);
+  const [sedes,         setSedes]         = useState([]);
+  const [tecnicos,      setTecnicos]      = useState([]);
+  const [tiposServicio, setTiposServicio] = useState([]);
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState("");
   const [form, setForm] = useState({
@@ -357,6 +358,7 @@ function ModalNuevoContrato({ onClose, onCreado }) {
   useEffect(() => {
     api.get("/clientes/").then(setClientes).catch(() => {});
     api.get("/tecnicos/").then(setTecnicos).catch(() => {});
+    api.get("/configuracion/").then(cfg => setTiposServicio(cfg.tipos_servicio || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -414,9 +416,17 @@ function ModalNuevoContrato({ onClose, onCreado }) {
           </Field>
 
           <Field label="Tipo de servicio *">
-            <input required value={form.tipo_servicio} onChange={e => set("tipo_servicio", e.target.value)}
-              placeholder="ej: Limpieza industrial, Control de plagas"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+            {tiposServicio.length > 0 ? (
+              <select required value={form.tipo_servicio} onChange={e => set("tipo_servicio", e.target.value)}
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
+                <option value="">Seleccionar tipo de servicio...</option>
+                {tiposServicio.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            ) : (
+              <input required value={form.tipo_servicio} onChange={e => set("tipo_servicio", e.target.value)}
+                placeholder="ej: Limpieza industrial, Control de plagas"
+                className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400" />
+            )}
           </Field>
 
           <div className="grid grid-cols-2 gap-4">
