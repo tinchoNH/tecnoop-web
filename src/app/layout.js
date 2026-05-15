@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Providers } from "./providers";
+import SwRegister from "./sw-register";
 
 export const metadata = {
   title: "TecnoOP",
@@ -22,6 +23,7 @@ export default function RootLayout({ children }) {
       </head>
       <body className="min-h-full">
         <Providers>{children}</Providers>
+        <SwRegister />
       </body>
     </html>
   );
