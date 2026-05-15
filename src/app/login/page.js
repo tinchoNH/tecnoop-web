@@ -11,14 +11,19 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) return null;
-  if (user) { if (typeof window !== "undefined") window.location.href = "/dashboard"; return null; }
+  if (user) {
+    if (typeof window !== "undefined") {
+      window.location.href = rol === "tecnico" ? "/tecnico" : "/dashboard";
+    }
+    return null;
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(""); setSubmitting(true);
     try {
       const data = await api.post("/auth/login", { email, password });
-      login(data.access_token, data.user.nombre, data.user.rol, data.user.empresa_id);
+      login(data.access_token, data.user.nombre, data.user.rol, data.user.empresa_id, data.user.tecnico_id);
     } catch { setError("Email o contraseña incorrectos"); }
     setSubmitting(false);
   };

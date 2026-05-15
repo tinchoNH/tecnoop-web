@@ -21,13 +21,14 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = (tok, usuario, rol, empresaId) => {
+  const login = (tok, usuario, rol, empresaId, tecnicoId) => {
     localStorage.setItem("tecnoop_token",      tok);
     localStorage.setItem("tecnoop_usuario",    usuario);
     localStorage.setItem("tecnoop_rol",        rol || "tecnico");
     localStorage.setItem("tecnoop_empresa_id", empresaId || "");
+    if (tecnicoId) localStorage.setItem("tecnoop_tecnico_id", tecnicoId);
     setToken(tok); setUser(usuario); setRol(rol); setEmpresaId(empresaId);
-    router.push("/dashboard");
+    router.push(rol === "tecnico" ? "/tecnico" : "/dashboard");
   };
 
   const logout = () => {
