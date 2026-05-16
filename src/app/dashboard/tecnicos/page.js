@@ -76,44 +76,64 @@ export default function TecnicosPage() {
             </button>
           )}
         </Card>
-      ) : (
-        <div className="grid grid-cols-3 gap-4">
-          {filtrados.map(t => {
-            const est = colorEstado[t.estado] || colorEstado.disponible;
+      ) : (() => {
+        const disponibles = filtrados.filter(t => t.estado === "disponible" || t.estado === "en_servicio");
+        const noDisponibles = filtrados.filter(t => t.estado !== "disponible" && t.estado !== "en_servicio");
+        const TecnicoCard = (t) => {
+          const est = colorEstado[t.estado] || colorEstado.disponible;
             return (
-              <Card key={t.id}
-                className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${seleccionado?.id === t.id ? "ring-2 ring-indigo-400" : ""}`}
-                onClick={() => setSeleccionado(t)}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
-                      {t.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 text-sm leading-tight">{t.nombre}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">{t.vehiculo || "Sin vehículo"}</p>
-                    </div>
+          return (
+            <Card key={t.id}
+              className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${seleccionado?.id === t.id ? "ring-2 ring-indigo-400" : ""}`}
+              onClick={() => setSeleccionado(t)}>
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    {t.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
                   </div>
-                  <Badge color={est.color} size="xs">{est.label}</Badge>
-                </div>
-                <div className="space-y-1.5 mb-3">
-                  {t.celular && <div className="flex items-center gap-2 text-xs text-slate-500"><Phone className="w-3.5 h-3.5" />{t.celular}</div>}
-                  {t.email   && <div className="flex items-center gap-2 text-xs text-slate-500"><Mail className="w-3.5 h-3.5" />{t.email}</div>}
-                  {t.zonas?.length > 0 && <div className="flex items-center gap-2 text-xs text-slate-500"><MapPin className="w-3.5 h-3.5" />{t.zonas.join(", ")}</div>}
-                </div>
-                {t.especialidades?.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {t.especialidades.slice(0,3).map(e => (
-                      <span key={e} className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">{e}</span>
-                    ))}
-                    {t.especialidades.length > 3 && <span className="text-[10px] text-slate-400">+{t.especialidades.length - 3}</span>}
+                  <div>
+                    <p className="font-semibold text-slate-900 text-sm leading-tight">{t.nombre}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{t.vehiculo || "Sin vehículo"}</p>
                   </div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      )}
+                </div>
+                <Badge color={est.color} size="xs">{est.label}</Badge>
+              </div>
+              <div className="space-y-1.5 mb-3">
+                {t.celular && <div className="flex items-center gap-2 text-xs text-slate-500"><Phone className="w-3.5 h-3.5" />{t.celular}</div>}
+                {t.email   && <div className="flex items-center gap-2 text-xs text-slate-500"><Mail className="w-3.5 h-3.5" />{t.email}</div>}
+                {t.zonas?.length > 0 && <div className="flex items-center gap-2 text-xs text-slate-500"><MapPin className="w-3.5 h-3.5" />{t.zonas.join(", ")}</div>}
+              </div>
+              {t.especialidades?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {t.especialidades.slice(0,3).map(e => (
+                    <span key={e} className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-medium">{e}</span>
+                  ))}
+                  {t.especialidades.length > 3 && <span className="text-[10px] text-slate-400">+{t.especialidades.length - 3}</span>}
+                </div>
+              )}
+            </Card>
+          );
+        };
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              {disponibles.map(TecnicoCard)}
+            </div>
+            {noDisponibles.length > 0 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-slate-200" />
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">No disponibles · {noDisponibles.length}</span>
+                  <div className="flex-1 h-px bg-slate-200" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 opacity-75">
+                  {noDisponibles.map(TecnicoCard)}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Slide-over */}
       <SlideOver
