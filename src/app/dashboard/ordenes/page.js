@@ -441,6 +441,7 @@ function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
     try {
       await api.post("/ordenes/", {
         ...form,
+        sede_id:    form.sede_id    || undefined,
         hora_inicio: form.hora_inicio || undefined,
       });
       onCreada(); onClose();
