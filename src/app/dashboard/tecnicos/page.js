@@ -8,8 +8,10 @@ const colorEstado = {
   disponible:  { color: "emerald", label: "Disponible"  },
   en_servicio: { color: "blue",    label: "En servicio" },
   ausente:     { color: "red",     label: "Ausente"     },
+  vacaciones:  { color: "yellow",  label: "Vacaciones"  },
+  licencia:    { color: "orange",  label: "Licencia"    },
 };
-const ESTADOS = ["disponible", "en_servicio", "ausente"];
+const ESTADOS = ["disponible", "en_servicio", "ausente", "vacaciones", "licencia"];
 
 export default function TecnicosPage() {
   const [tecnicos,    setTecnicos]    = useState([]);
