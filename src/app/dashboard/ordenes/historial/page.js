@@ -164,16 +164,23 @@ export default function HistorialPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      {o.tecnicos ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold shrink-0">
-                            {o.tecnicos.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+                      {(() => {
+                        const ids = o.tecnicos_ids?.length ? o.tecnicos_ids : (o.tecnico_id ? [o.tecnico_id] : []);
+                        const asignados = tecnicos.filter(t => ids.includes(t.id));
+                        if (asignados.length === 0) return <span className="text-xs text-slate-300 italic">Sin asignar</span>;
+                        return (
+                          <div className="space-y-1">
+                            {asignados.map(t => (
+                              <div key={t.id} className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                  {t.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+                                </div>
+                                <span className="text-sm text-slate-700">{t.nombre}</span>
+                              </div>
+                            ))}
                           </div>
-                          <span className="text-sm text-slate-700">{o.tecnicos.nombre}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-slate-300 italic">Sin asignar</span>
-                      )}
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4">
                       <Badge color={est.color} size="xs">{est.label}</Badge>
@@ -191,14 +198,14 @@ export default function HistorialPage() {
 
       {/* Slide-over detalle (reutiliza la misma lógica) */}
       {detalle && (
-        <DetalleOT orden={detalle} onClose={() => setDetalle(null)} onActualizada={(o) => { setDetalle(o); buscar(); }} />
+        <DetalleOT orden={detalle} tecnicos={tecnicos} onClose={() => setDetalle(null)} onActualizada={(o) => { setDetalle(o); buscar(); }} />
       )}
     </div>
   );
 }
 
 /* ─── Detalle OT en historial (solo lectura + cambio estado) ─── */
-function DetalleOT({ orden, onClose, onActualizada }) {
+function DetalleOT({ orden, tecnicos, onClose, onActualizada }) {
   const [saving, setSaving] = useState(false);
   const abierto = !!orden;
 
@@ -260,7 +267,18 @@ function DetalleOT({ orden, onClose, onActualizada }) {
             <Row label="Fecha" value={new Date(orden.fecha_programada + "T12:00:00").toLocaleDateString("es-AR", { weekday:"long", day:"numeric", month:"long", year:"numeric" })} />
             {orden.hora_inicio && <Row label="Hora" value={orden.hora_inicio.slice(0,5)} />}
             <Row label="Sede" value={`${orden.sedes?.nombre} — ${orden.sedes?.direccion}`} />
-            <Row label="Técnico" value={orden.tecnicos?.nombre || "Sin asignar"} />
+            {(() => {
+              const ids = orden.tecnicos_ids?.length ? orden.tecnicos_ids : (orden.tecnico_id ? [orden.tecnico_id] : []);
+              const asignados = tecnicos.filter(t => ids.includes(t.id));
+              return (
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Técnicos</p>
+                  {asignados.length > 0
+                    ? <p className="text-sm text-slate-700">{asignados.map(t => t.nombre).join(", ")}</p>
+                    : <p className="text-sm text-slate-400 italic">Sin asignar</p>}
+                </div>
+              );
+            })()}
             {orden.descripcion && <Row label="Descripción" value={orden.descripcion} />}
             {orden.observaciones && <Row label="Observaciones" value={orden.observaciones} />}
             {orden.fecha_inicio_real && (
