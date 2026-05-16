@@ -468,11 +468,11 @@ function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-slate-600 mb-1 block">Sede *</label>
-            <select required value={form.sede_id} onChange={e => set("sede_id", e.target.value)}
+            <label className="text-xs font-medium text-slate-600 mb-1 block">Sede</label>
+            <select value={form.sede_id} onChange={e => set("sede_id", e.target.value)}
               disabled={!form.cliente_id}
               className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 disabled:bg-slate-50 disabled:text-slate-400">
-              <option value="">Seleccionar sede...</option>
+              <option value="">{sedes.length === 0 && form.cliente_id ? "Sin sedes cargadas" : "Sin sede específica"}</option>
               {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre} — {s.direccion}</option>)}
             </select>
           </div>
