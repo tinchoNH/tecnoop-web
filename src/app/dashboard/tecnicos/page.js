@@ -27,10 +27,14 @@ export default function TecnicosPage() {
     finally { setLoading(false); }
   }
 
-  const filtrados = tecnicos.filter(t =>
-    t.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    t.especialidades?.some(e => e.toLowerCase().includes(busqueda.toLowerCase()))
-  );
+  const ORDEN_ESTADO = { disponible: 0, en_servicio: 1, ausente: 2, vacaciones: 3, licencia: 4 };
+
+  const filtrados = tecnicos
+    .filter(t =>
+      t.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      t.especialidades?.some(e => e.toLowerCase().includes(busqueda.toLowerCase()))
+    )
+    .sort((a, b) => (ORDEN_ESTADO[a.estado] ?? 99) - (ORDEN_ESTADO[b.estado] ?? 99));
 
   return (
     <div className="p-6 space-y-5">
