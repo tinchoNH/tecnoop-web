@@ -49,8 +49,12 @@ export default function OrdenesHoyPage() {
   const sinAsignar = ordenes.filter(o => !o.tecnico_id && o.estado !== "cancelada");
   const porTecnico = tecnicos.map(t => ({
     tecnico: t,
-    ots: ordenes.filter(o => o.tecnico_id === t.id && o.estado !== "cancelada"),
-  })).filter(col => col.ots.length > 0 || true); // mostrar todos los técnicos activos
+    ots: ordenes.filter(o => {
+      if (o.estado === "cancelada") return false;
+      const ids = o.tecnicos_ids?.length ? o.tecnicos_ids : (o.tecnico_id ? [o.tecnico_id] : []);
+      return ids.includes(t.id);
+    }),
+  }));
 
   const hoy = new Date().toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "long" });
 
@@ -203,7 +207,8 @@ function SlideOverOT({ orden, tecnicos, onClose, onActualizada, onCancelada }) {
 
   useEffect(() => {
     if (!orden) { setEditando(false); return; }
-    setForm({ tecnico_id: orden.tecnico_id || "", observaciones: orden.observaciones || "" });
+    const ids = orden.tecnicos_ids?.length ? orden.tecnicos_ids : (orden.tecnico_id ? [orden.tecnico_id] : []);
+    setForm({ tecnicos_ids: ids, observaciones: orden.observaciones || "" });
     setEditando(false);
   }, [orden?.id]);
 
@@ -217,10 +222,19 @@ function SlideOverOT({ orden, tecnicos, onClose, onActualizada, onCancelada }) {
     } finally { setSaving(false); }
   }
 
+  function toggleTecnico(id) {
+    setForm(f => {
+      const ids = f.tecnicos_ids.includes(id)
+        ? f.tecnicos_ids.filter(x => x !== id)
+        : [...f.tecnicos_ids, id];
+      return { ...f, tecnicos_ids: ids };
+    });
+  }
+
   async function guardar() {
     setSaving(true);
     try {
-      const updated = await api.patch(`/ordenes/${orden.id}`, form);
+      const updated = await api.patch(`/ordenes/${orden.id}`, { tecnicos_ids: form.tecnicos_ids, observaciones: form.observaciones });
       onActualizada(updated);
       setEditando(false);
     } finally { setSaving(false); }
@@ -286,25 +300,40 @@ function SlideOverOT({ orden, tecnicos, onClose, onActualizada, onCancelada }) {
                 </div>
               </div>
 
-              {/* Técnico asignado */}
+              {/* Técnicos asignados */}
               <div>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Técnico</p>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Técnicos</p>
                 {editando ? (
-                  <select value={form.tecnico_id} onChange={e => set("tecnico_id", e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
-                    <option value="">Sin asignar</option>
-                    {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                  </select>
-                ) : orden.tecnicos ? (
-                  <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
-                    <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">
-                      {orden.tecnicos.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
-                    </div>
-                    <p className="text-sm font-medium text-slate-700">{orden.tecnicos.nombre}</p>
+                  <div className="space-y-1.5">
+                    {tecnicos.map(t => (
+                      <label key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
+                        <input type="checkbox"
+                          checked={form.tecnicos_ids.includes(t.id)}
+                          onChange={() => toggleTecnico(t.id)}
+                          className="accent-indigo-500" />
+                        <div className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                          {t.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+                        </div>
+                        <span className="text-sm text-slate-700">{t.nombre}</span>
+                      </label>
+                    ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-slate-300 italic">Sin asignar</p>
-                )}
+                ) : (() => {
+                  const ids = orden.tecnicos_ids?.length ? orden.tecnicos_ids : (orden.tecnico_id ? [orden.tecnico_id] : []);
+                  const asignados = tecnicos.filter(t => ids.includes(t.id));
+                  return asignados.length > 0 ? (
+                    <div className="space-y-2">
+                      {asignados.map(t => (
+                        <div key={t.id} className="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-bold shrink-0">
+                            {t.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+                          </div>
+                          <p className="text-sm font-medium text-slate-700">{t.nombre}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : <p className="text-sm text-slate-300 italic">Sin asignar</p>;
+                })()}
               </div>
 
               {/* Horario */}
@@ -380,7 +409,7 @@ function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
   const [sedes,         setSedes]         = useState([]);
   const [tiposServicio, setTiposServicio] = useState([]);
   const [form, setForm] = useState({
-    cliente_id: "", sede_id: "", tecnico_id: "", tipo_servicio: "",
+    cliente_id: "", sede_id: "", tecnicos_ids: [], tipo_servicio: "",
     descripcion: "", fecha_programada: new Date().toISOString().split("T")[0], hora_inicio: "",
   });
   const [saving, setSaving] = useState(false);
@@ -400,12 +429,18 @@ function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
     set("sede_id", "");
   }, [form.cliente_id]);
 
+  function toggleTecnico(id) {
+    set("tecnicos_ids", form.tecnicos_ids.includes(id)
+      ? form.tecnicos_ids.filter(x => x !== id)
+      : [...form.tecnicos_ids, id]
+    );
+  }
+
   async function handleSubmit(e) {
     e.preventDefault(); setSaving(true); setError("");
     try {
       await api.post("/ordenes/", {
         ...form,
-        tecnico_id: form.tecnico_id || undefined,
         hora_inicio: form.hora_inicio || undefined,
       });
       onCreada(); onClose();
@@ -471,12 +506,23 @@ function ModalNuevaOT({ tecnicos, onClose, onCreada }) {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-slate-600 mb-1 block">Técnico asignado</label>
-            <select value={form.tecnico_id} onChange={e => set("tecnico_id", e.target.value)}
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400">
-              <option value="">Sin asignar (quedará pendiente)</option>
-              {tecnicos.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-            </select>
+            <label className="text-xs font-medium text-slate-600 mb-1 block">
+              Técnicos asignados <span className="text-slate-400">(opcional — puede quedar pendiente)</span>
+            </label>
+            <div className="space-y-1.5">
+              {tecnicos.map(t => (
+                <label key={t.id} className="flex items-center gap-3 px-3 py-2 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-50 transition">
+                  <input type="checkbox"
+                    checked={form.tecnicos_ids.includes(t.id)}
+                    onChange={() => toggleTecnico(t.id)}
+                    className="accent-indigo-500" />
+                  <div className="w-6 h-6 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {t.nombre.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+                  </div>
+                  <span className="text-sm text-slate-700">{t.nombre}</span>
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>
