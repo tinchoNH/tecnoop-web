@@ -81,7 +81,6 @@ export default function TecnicosPage() {
         const noDisponibles = filtrados.filter(t => t.estado !== "disponible" && t.estado !== "en_servicio");
         const TecnicoCard = (t) => {
           const est = colorEstado[t.estado] || colorEstado.disponible;
-            return (
           return (
             <Card key={t.id}
               className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${seleccionado?.id === t.id ? "ring-2 ring-indigo-400" : ""}`}
