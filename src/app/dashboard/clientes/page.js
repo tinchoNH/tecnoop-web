@@ -67,45 +67,76 @@ export default function ClientesPage() {
             </button>
           )}
         </Card>
-      ) : (
-        <div className="grid grid-cols-3 gap-4">
-          {filtrados.map(c => (
-            <Card key={c.id}
-              className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${seleccionado?.id === c.id ? "ring-2 ring-indigo-400" : ""}`}
-              onClick={() => setSeleccionado(c)}>
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
-                  <Building2 className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900 text-sm leading-tight truncate">{c.razon_social}</p>
-                  {c.cuit && <p className="text-xs text-slate-400 mt-0.5">CUIT {c.cuit}</p>}
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
+      ) : (() => {
+        const ClienteCard = (c) => (
+          <Card key={c.id}
+            className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${seleccionado?.id === c.id ? "ring-2 ring-indigo-400" : ""}`}
+            onClick={() => setSeleccionado(c)}>
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center font-bold text-sm shrink-0">
+                <Building2 className="w-5 h-5" />
               </div>
-              <div className="space-y-1.5">
-                {c.responsable && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <User className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{c.responsable}</span>
-                  </div>
-                )}
-                {c.celular && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Phone className="w-3.5 h-3.5 shrink-0" />{c.celular}
-                  </div>
-                )}
-                {(c.localidad || c.direccion) && (
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <MapPin className="w-3.5 h-3.5 shrink-0" />
-                    <span className="truncate">{[c.localidad, c.direccion].filter(Boolean).join(" — ")}</span>
-                  </div>
-                )}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-slate-900 text-sm leading-tight truncate">{c.razon_social}</p>
+                {c.cuit && <p className="text-xs text-slate-400 mt-0.5">CUIT {c.cuit}</p>}
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              <ChevronRight className="w-4 h-4 text-slate-300 shrink-0 mt-0.5" />
+            </div>
+            <div className="space-y-1.5">
+              {c.responsable && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <User className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{c.responsable}</span>
+                </div>
+              )}
+              {c.celular && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <Phone className="w-3.5 h-3.5 shrink-0" />{c.celular}
+                </div>
+              )}
+              {(c.localidad || c.direccion) && (
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <MapPin className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{[c.localidad, c.direccion].filter(Boolean).join(" — ")}</span>
+                </div>
+              )}
+            </div>
+          </Card>
+        );
+
+        // Agrupar por localidad
+        const grupos = {};
+        filtrados.forEach(c => {
+          const loc = c.localidad?.trim() || "Sin localidad";
+          if (!grupos[loc]) grupos[loc] = [];
+          grupos[loc].push(c);
+        });
+        const localidades = Object.keys(grupos).sort((a, b) => {
+          if (a === "Sin localidad") return 1;
+          if (b === "Sin localidad") return -1;
+          return a.localeCompare(b, "es");
+        });
+
+        return (
+          <div className="space-y-8">
+            {localidades.map(loc => (
+              <div key={loc}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-sm font-semibold text-slate-600">{loc}</span>
+                    <span className="text-xs text-slate-400 font-normal">· {grupos[loc].length} {grupos[loc].length === 1 ? "cliente" : "clientes"}</span>
+                  </div>
+                  <div className="flex-1 h-px bg-slate-100" />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {grupos[loc].map(ClienteCard)}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       <SlideOver
         cliente={seleccionado}
